@@ -22,6 +22,7 @@ class gemini(object):
                                     on_close=self.on_close,
                                     on_open=self.on_open)
         self.dict_change = {}
+        self.last_date_hour = ''
 
         with open(r"C:\Users\yuan\PycharmProjects\evisx\changes_gemini.csv",'w+',newline = '') as self.gemini_changes:
             self.writer = csv.writer(self.gemini_changes)
@@ -43,28 +44,41 @@ class gemini(object):
                     volume = float(change[2])
                     date_hour = ts_to_datetime(datetime.datetime.now().timestamp())
 
-                    if date_hour not in self.dict_change:
-                        self.dict_change[date_hour] = volume
-                        current_hour = int(date_hour[-2:])
-                        if current_hour > 0:
-                            date_hour_to_write = date_hour[:-2] + str(int(date_hour[-2:]) + 1)
-
-                            with open(r"C:\Users\yuan\PycharmProjects\evisx\changes_gemini.csv", 'a+',
-                                          newline='') as self.gemini_changes:
-                                self.writer = csv.writer(self.gemini_changes)
-                                self.writer.writerow([self.dict_change[date_hour_to_write], date_hour_to_write])
+                    if date_hour != self.last_date_hour and self.last_date_hour in self.dict_change:
+                        with open(r"C:\Users\yuan\PycharmProjects\evisx\changes_gemini.csv", 'a+',
+                                  newline='') as self.gemini_changes:
+                            self.writer = csv.writer(self.gemini_changes)
+                            self.writer.writerow([self.dict_change[self.last_date_hour], self.last_date_hour])
+                        self.last_date_hour = date_hour
+                    elif date_hour != self.last_date_hour and self.last_date_hour not in self.dict_change:
+                        self.last_date_hour = date_hour
 
 
-
-                        elif current_hour == 0:
-                            date_hour_to_write = date_hour[:8] + str(int(date_hour[8:10]) - 1) + 'T23'
-                            with open(r"C:\Users\yuan\PycharmProjects\evisx\changes_gemini.csv", 'a+',
-                                          newline='') as self.gemini_changes:
-                                self.writer = csv.writer(self.gemini_changes)
-                                self.writer.writerow([self.dict_change[date_hour_to_write], date_hour_to_write])
+                    # if date_hour not in self.dict_change:
+                    #     self.dict_change[date_hour] = volume
+                    #     current_hour = int(date_hour[-2:])
+                    #     if current_hour > 0:
+                    #         date_hour_to_write = date_hour[:-2] + str(int(date_hour[-2:]) + 1)
+                    #
+                    #         with open(r"C:\Users\yuan\PycharmProjects\evisx\changes_gemini.csv", 'a+',
+                    #                       newline='') as self.gemini_changes:
+                    #             self.writer = csv.writer(self.gemini_changes)
+                    #             self.writer.writerow([self.dict_change[date_hour_to_write], date_hour_to_write])
+                    #
+                    #
+                    #
+                    #     elif current_hour == 0:
+                    #         date_hour_to_write = date_hour[:8] + str(int(date_hour[8:10]) - 1) + 'T23'
+                    #         with open(r"C:\Users\yuan\PycharmProjects\evisx\changes_gemini.csv", 'a+',
+                    #                       newline='') as self.gemini_changes:
+                    #             self.writer = csv.writer(self.gemini_changes)
+                    #             self.writer.writerow([self.dict_change[date_hour_to_write], date_hour_to_write])
 
                     else:
-                        self.dict_change[date_hour] += volume
+                        try:
+                            self.dict_change[date_hour] += volume
+                        except:
+                            self.dict_change[date_hour] = 0
             except SyntaxError:
                 pass
 
