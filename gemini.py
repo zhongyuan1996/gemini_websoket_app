@@ -4,6 +4,7 @@ import _thread as thread
 import datetime
 import csv
 
+#transforming timestamps to datetime
 def ms_to_datetime(timestampms):
     res = datetime.datetime.fromtimestamp(timestampms/1000.0).isoformat()
     return res[0:13]
@@ -14,6 +15,7 @@ def ts_to_datetime(timestampms):
 
 class gemini(object):
     def __init__(self):
+        #initialzing websocket and use dictionary to store change of the order book
         self.logon_msg = '{"type": "subscribe","subscriptions":[{"name":"l2","symbols":["BTCUSD"]}]}'
         websocket.enableTrace(True)
         self.ws = websocket.WebSocketApp("wss://api.gemini.com/v2/marketdata",
@@ -23,7 +25,7 @@ class gemini(object):
                                     on_open=self.on_open)
         self.dict_change = {}
         self.last_date_hour = ''
-
+        #prepare csv for storing the data
         with open(r"C:\Users\yuan\PycharmProjects\evisx\changes_gemini.csv",'w+',newline = '') as self.gemini_changes:
             self.writer = csv.writer(self.gemini_changes)
             self.writer.writerow(['change','date_hour'])
@@ -35,7 +37,8 @@ class gemini(object):
 
     def on_message(self, message):
         splited_mes = message[1:-1].split(',')
-
+        
+        #check if the data is trade data or order book changes
         if splited_mes[0] == '"type":"l2_updates"':
             try:
                 change_list = eval(message[49:-1])
@@ -45,6 +48,7 @@ class gemini(object):
                     date_hour = ts_to_datetime(datetime.datetime.now().timestamp())
 
                     if date_hour != self.last_date_hour and self.last_date_hour in self.dict_change:
+                        #write the change data with the correct datetime
                         with open(r"C:\Users\yuan\PycharmProjects\evisx\changes_gemini.csv", 'a+',
                                   newline='') as self.gemini_changes:
                             self.writer = csv.writer(self.gemini_changes)
@@ -53,36 +57,16 @@ class gemini(object):
                     elif date_hour != self.last_date_hour and self.last_date_hour not in self.dict_change:
                         self.last_date_hour = date_hour
 
-
-                    # if date_hour not in self.dict_change:
-                    #     self.dict_change[date_hour] = volume
-                    #     current_hour = int(date_hour[-2:])
-                    #     if current_hour > 0:
-                    #         date_hour_to_write = date_hour[:-2] + str(int(date_hour[-2:]) + 1)
-                    #
-                    #         with open(r"C:\Users\yuan\PycharmProjects\evisx\changes_gemini.csv", 'a+',
-                    #                       newline='') as self.gemini_changes:
-                    #             self.writer = csv.writer(self.gemini_changes)
-                    #             self.writer.writerow([self.dict_change[date_hour_to_write], date_hour_to_write])
-                    #
-                    #
-                    #
-                    #     elif current_hour == 0:
-                    #         date_hour_to_write = date_hour[:8] + str(int(date_hour[8:10]) - 1) + 'T23'
-                    #         with open(r"C:\Users\yuan\PycharmProjects\evisx\changes_gemini.csv", 'a+',
-                    #                       newline='') as self.gemini_changes:
-                    #             self.writer = csv.writer(self.gemini_changes)
-                    #             self.writer.writerow([self.dict_change[date_hour_to_write], date_hour_to_write])
-
                     else:
-                        try:
+                        try:#if the datetime is in the dict and is the same hour, add the volume to the current one
                             self.dict_change[date_hour] += volume
-                        except:
+                        except:#if there is no datetime in the dict, initialize the first entry
                             self.dict_change[date_hour] = 0
-            except SyntaxError:
+            except SyntaxError:#get rid of the first messege which contains information before our time of subscribe
                 pass
 
         elif splited_mes[0] == '"type":"trade"':
+            #if it is trade data, write to the trade data set
 
 
             timestamp = int(splited_mes[3].split(':')[-1])
